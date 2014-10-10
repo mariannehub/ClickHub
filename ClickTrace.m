@@ -32,7 +32,7 @@ for i=1:numofsound(2)
         'Position',[20 620 80 40], 'callback', {@zoomr} );
     S.pb2 = uicontrol('Style','pushbutton','String','Zoom back',...
         'Position',[20 580 80 40], 'callback', {@zoomb} );
-    S.pb2 = uicontrol('Style','pushbutton','String','Pan',...
+    S.pb3 = uicontrol('Style','pushbutton','String','Pan',...
         'Position',[20 540 80 40], 'callback', {@main} );
     S.pb4 = uicontrol('Style','pushbutton','String','Get clicks',...
         'Position',[20 480 80 40], 'callback', {@points} );
@@ -40,12 +40,12 @@ for i=1:numofsound(2)
         'Position',[20 440 80 40], 'callback', {@saveclick} );
     S.pb6 = uicontrol('Style','pushbutton','String','Id trains',...
         'Position',[20 260 80 40], 'callback', {@trains} );
-     S.pb7 = uicontrol('Style','pushbutton','String','Save train',...
+    S.pb7 = uicontrol('Style','pushbutton','String','Save train',...
         'Position',[20 220 80 40], 'callback', {@savetrain} );
     S.pb8 = uicontrol('Style','pushbutton','String','Look at signal',...
         'Position',[20 140 80 40], 'callback', {@signal} );
     S.pb9 = uicontrol('Style','pushbutton','String','Play!',...
-        'Position',[20 60 80 40], 'callback', {@playb} );
+        'Position',[20 60 80 40] , 'callback', {@playb} );
     
     myhandles = guihandles( s.fh);
     myhandles.y=y;
@@ -168,13 +168,14 @@ end
     end
 
 %playback when button is pushed
-function []=playb(y,Fs) 
-myhandles = guidata(gcbo);
-y=myhandles.y;
-Fs=myhandles.Fs;
-wavplay(y, Fs, 'async')
-end
-      
+    function []=playb(varargin)
+        myhandles = guidata(gcbo);
+        y=myhandles.y;
+        Fs=myhandles.Fs;
+        sound(y, Fs);
+    end
+
+
 %open a new figure to investigate signal of each click
     function []=signal(varargin)
         myhandles = guidata(gcbo);
@@ -182,24 +183,30 @@ end
         y=myhandles.y;
         savefld= myhandles.savefld;
         x1=xy(:,1);
+        bsamples=600; % change here to change the size of the window with the waveform
+        asamples=1000; % change here to change the size of the window with the waveform
         numofclicks=length(x1);
         clickends=[];
         for i=1:numofclicks
             h2=figure('OuterPosition', [0 10 1265 750]);
             set(h2,'Renderer','painters');
-            minplot=(x1(i)*Fs)- 600;
-            maxplot=(x1(i)*Fs)+ 1000;
+            minplot=(x1(i)*Fs)- bsamples;
+            maxplot=(x1(i)*Fs)+ asamples;
             rangeplot=fix(minplot):fix(maxplot);
             plot(1:length(rangeplot), y(rangeplot), '-k');
             axis tight;
             title('Click to select beginnig and end of click');
             [start,dump]=ginput(2);
             hold on
-            plot([start(1) start(1)],get(gca,'ylim'));
-            plot([start(2) start(2)],get(gca,'ylim'));
+            p1=plot([start(1) start(1)],get(gca,'ylim'), 'EraseMode', 'xor');
+            p2=plot([start(2) start(2)],get(gca,'ylim'), 'EraseMode', 'xor');
             button= questdlg('Okay to save and move to next click?','Done?','save','redo', 'save');
             while sum(button) == 426 %if answer is redo
+                delete(p1); % delete vertical line
+                delete(p2); % delete vertical line
                 [start,dump]=ginput(2);
+                p1=plot([start(1) start(1)],get(gca,'ylim'), 'EraseMode', 'xor');
+                p2=plot([start(2) start(2)],get(gca,'ylim'), 'EraseMode', 'xor');
                 button= questdlg('Okay to save and move to next click?','Done?','save','redo', 'save');
             end
             if sum(button) == 431 %if answer is "save", save and move to new file
